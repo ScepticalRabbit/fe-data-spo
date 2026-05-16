@@ -7,25 +7,25 @@
 
 # NOTE: only used for transient solves
 endTime = 1
-timeStep = 1
+# timeStep = 1
 
 # Thermal Loads/BCs
+plate_width = 60e-3
+plate_thick = 1e-3
+plate_area = ${fparse plate_width*plate_thick}
+heat_flux = ${fparse 10.0 / plate_area}
+
 toK = 273.15
-ambTemp = ${fparse 20.0 + toK}           # degK
-coolantTemp = ${fparse 146.0 + toK}      # degK
-
-# NOTE: 5.9kw is the nominal induction coil power, 85W goes into the sample per
-# kw applied to the coil based on a full EM-thermal simulation
-# inductionkW = 5.9
-# surfHeatPower =${fparse inductionkW*85}      # W
-# surfArea = ${fparse 50e-3*37e-3}   # m^2
-# surfHeatFlux = ${fparse surfHeatPower/surfArea} # W.m^-2
-
-timeConst = 0.1   # s
+#ambTemp = ${fparse 20.0 + toK}           # degK
+coolantTemp = ${fparse 100.0 + toK}      # degK
 
 # Mesh file string
-mesh_file = 'stc_astested.msh'
+mesh_file = 'mesh2d_plate.msh'
 elem_order = 'SECOND'
+
+ssDensity = 7899    # kg/m^3
+ssSpecHeat = 501.0  # W/m.K 
+ssThermCond = 15.48 # J/kg.K
 
 #** MOOSEHERDER VARIABLES - END
 #-------------------------------------------------------------------------
@@ -44,74 +44,36 @@ elem_order = 'SECOND'
     []
 []
 
+[Functions]
+    [surf_hs_spat_fun]
+        type = ParsedFunction
+        expression = '${heat_flux}*(x-${plate_width})*(x+${plate_width}) / -(${plate_width})^2'
+    []
+[]
+
 [Kernels]
     [heat_conduction]
         type = ADHeatConduction
         variable = temperature
     []
-    [time_derivative]
-        type = ADHeatConductionTimeDerivative
-        variable = temperature
-    []
-[]
-
-[Functions]
-    [ss_density_fun]
-        type = PiecewiseLinear
-        data_file = ./data/ss316L_density_K.csv
-        format = columns
-    []
-    [ss_therm_cond_fun]
-        type = PiecewiseLinear
-        data_file = ./data/ss316L_therm_cond_K.csv
-        format = columns
-    []
-    [ss_therm_spec_heat_fun]
-        type = PiecewiseLinear
-        data_file = ./data/ss316L_therm_spec_heat_K.csv
-        format = columns
-    []
-
-    [surf_hs_spat_fun]
-        type = PiecewiseBilinear
-        data_file = ./data/surf_hs.csv
-        xaxis = 0 # x in csv is x geometry for the top surface
-        yaxis = 2 # y in csv is z geometry for the top surface
-    []
-    [surf_hs_time_fun]
-        type = ParsedFunction
-        expression = '1-exp(-(1/${timeConst})*t)'
-    []
-    [surf_hs_fun]
-        type = CompositeFunction
-        functions = 'surf_hs_spat_fun surf_hs_time_fun'
-    []
+    # [time_derivative]
+    #     type = ADHeatConductionTimeDerivative
+    #     variable = temperature
+    # []
 []
 
 [Materials]
-    [ss_density]
-        type = ADCoupledValueFunctionMaterial
-        v = temperature
-        prop_name = density
-        function = ss_density_fun
-        block = 'stc-vol'
+    [ss316l_thermal]
+        type = ADHeatConductionMaterial
+        thermal_conductivity = ${ssThermCond}
+        specific_heat = ${ssSpecHeat}
     []
-    [ss_thermal_conductivity]
-        type = ADCoupledValueFunctionMaterial
-        v = temperature
-        prop_name = thermal_conductivity
-        function = ss_therm_cond_fun
-        block = 'stc-vol'
+    [ss316l_density]
+        type = ADGenericConstantMaterial
+        prop_names = 'density'
+        prop_values = ${ssDensity}
     []
-    [ss_specific_heat]
-        type = ADCoupledValueFunctionMaterial
-        v = temperature
-        prop_name = specific_heat
-        function = ss_therm_spec_heat_fun
-        block = 'stc-vol'
-    []
-
-    # HTC from sieder-tate with HIVE test conditions
+    # HTC from sieder-tate
     [coolant_heat_transfer_coefficient]
         type = ADPiecewiseLinearInterpolationMaterial
         xy_data = '
@@ -125,7 +87,7 @@ elem_order = 'SECOND'
         '
         variable = temperature
         property = heat_transfer_coefficient
-        boundary = 'bc-pipe-htc'
+        boundary = 'bc-bot'
     []
 []
 
@@ -133,49 +95,29 @@ elem_order = 'SECOND'
     [heat_flux_out]
         type = ADConvectiveHeatFluxBC
         variable = temperature
-        boundary = 'bc-pipe-htc'
+        boundary = 'bc-bot'
         T_infinity = ${coolantTemp}
         heat_transfer_coefficient = heat_transfer_coefficient
     []
     [heat_flux_in]
         type = ADFunctionNeumannBC
         variable = temperature
-        boundary = 'bc-top-heatflux'
-        function = surf_hs_fun
+        boundary = 'bc-top'
+        function = surf_hs_spat_fun
     []
-    [radiation_flux]
-        type = ADFunctionRadiativeBC
-        variable = temperature
-        boundary = 'bc-top-heatflux bc-base-surf bc-left-surf bc-right-surf bc-front-surf bc-back-surf'
-        emissivity_function = '0.5'
-        Tinfinity = ${ambTemp}
-        stefan_boltzmann_constant = 5.67e-8
-        use_displaced_mesh = true
-    []
+    # [radiation_flux]
+    #     type = ADFunctionRadiativeBC
+    #     variable = temperature
+    #     boundary = 'bc-top-heatflux bc-base-surf bc-left-surf bc-right-surf bc-front-surf bc-back-surf'
+    #     emissivity_function = '0.5'
+    #     Tinfinity = ${ambTemp}
+    #     stefan_boltzmann_constant = 5.67e-8
+    #     use_displaced_mesh = true
+    # []
 []
 
 [Executioner]
-    #---------------------------------------------------------------------------
-
-    # type = Transient
-    # solve_type = 'NEWTON'
-    # petsc_options = '-snes_converged_reason'
-    # petsc_options_iname = '-pc_type -ksp_type -ksp_gmres_restart'
-    # petsc_options_value = ' lu       gmres     200'
-
-    # l_max_its = 100
-    # l_tol = 1e-6
-
-    # nl_max_its = 50
-    # nl_rel_tol = 1e-6
-    # nl_abs_tol = 1e-6
-
-    # end_time= ${endTime}
-    # dt = ${timeStep}
-
-    #---------------------------------------------------------------------------
-
-    type = Transient
+    type = Steady # Transient
     solve_type = 'NEWTON'
     petsc_options = '-snes_converged_reason'
     petsc_options_iname = '-pc_type -pc_hypre_type'
@@ -188,10 +130,8 @@ elem_order = 'SECOND'
     nl_rel_tol = 1e-6
     nl_abs_tol = 1e-6
 
-    end_time= ${endTime}
-    dt = ${timeStep}
-
-    #---------------------------------------------------------------------------
+    # end_time= ${endTime}
+    # dt = ${timeStep}
 
     [Predictor]
         type = SimplePredictor
@@ -204,6 +144,10 @@ elem_order = 'SECOND'
         type = NodalExtremeValue
         variable = temperature
     []
+    [temp_max_node_id]
+        type = NodalMaxValueId
+        variable = temperature
+    []
     [temp_avg]
         type = AverageNodalVariableValue
         variable = temperature
@@ -212,4 +156,6 @@ elem_order = 'SECOND'
 
 [Outputs]
     exodus = true
+    csv = true
+    file_base = 'therm2d_funchf_${endTime}f' 
 []

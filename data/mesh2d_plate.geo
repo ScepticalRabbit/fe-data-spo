@@ -19,14 +19,14 @@ Geometry.VolumeLabels = 0;
 file_name = "mesh2d_plate.msh";
 
 // Geometric variables
-plate_height = 100e-3;
-plate_width = 60e-3;
-
+plate_height = 80e-3;  
+plate_width = 50e-3; 
 
 // Must be an integer
 elem_order = 2;
 mesh_ref = 1;
 mesh_size = 1e-3/mesh_ref;
+
 num_threads = 4;
 
 //** MOOSEHERDER VARIABLES - END

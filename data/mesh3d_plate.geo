@@ -19,16 +19,16 @@ Geometry.VolumeLabels = 0;
 file_name = "mesh3d_plate.msh";
 
 // Geometric variables
+plate_width = 50e-3;
+plate_height = 80e-3;
 plate_thick = 2e-3;
-plate_height = 100e-3;
-plate_width = 60e-3;
 
-plate_thick_layers = 3;
+plate_thick_layers = 2;
 
 // Must be an integer
 elem_order = 2;
 mesh_ref = 1;
-mesh_size = 1e-3/mesh_ref;
+mesh_size = 2e-3/mesh_ref;
 num_threads = 4;
 //** MOOSEHERDER VARIABLES - END
 //------------------------------------------------------------------------------
@@ -47,6 +47,7 @@ Rectangle(s1) =
 //------------------------------------------------------------------------------
 // Mesh Sizing
 MeshSize{ PointsOf{ Surface{:}; } } = mesh_size;
+// Use transfinite for a perfect mapped mesh
 Transfinite Surface{Surface{:}};
 Recombine Surface{Surface{:}};
 
@@ -58,10 +59,26 @@ Extrude{0.0,0.0,plate_thick}{
 // Physical Volumes and Surfaces
 Physical Volume("plate-vol") = {Volume{:}};
 
-Physical Surface("plate-surf-vis-front") = {6};
-Physical Surface("plate-surf-vis-back") = {1};
-Physical Surface("bc-top-disp") = {4};
-Physical Surface("bc-base-disp") = {2};
+// Standard coordinate based selections for consistency
+ps1() = Surface In BoundingBox{
+    -plate_width/2-tol,plate_height-tol,0.0-tol,
+    plate_width/2+tol,plate_height+tol,plate_thick+tol};
+Physical Surface("bc-top-disp") = {ps1()};
+
+ps2() = Surface In BoundingBox{
+    -plate_width/2-tol,0.0-tol,0.0-tol,
+    plate_width/2+tol,0.0+tol,plate_thick+tol};
+Physical Surface("bc-base-disp") = {ps2()};
+
+ps3() = Surface In BoundingBox{
+    -plate_width/2-tol,0.0-tol,plate_thick-tol/4,
+    plate_width/2+tol,plate_height+tol,plate_thick+tol/4};
+Physical Surface("plate-surf-vis-front") = {ps3()};
+
+ps4() = Surface In BoundingBox{
+    -plate_width/2-tol,0.0-tol,0.0-tol/4,
+    plate_width/2+tol,plate_height+tol,0.0+tol/4};
+Physical Surface("plate-surf-vis-back") = {ps4()};
 
 //------------------------------------------------------------------------------
 // Global meshing
@@ -74,6 +91,7 @@ Mesh.MaxNumThreads2D = num_threads;
 Mesh.MaxNumThreads3D = num_threads;
 
 Mesh.ElementOrder = elem_order;
+Mesh.SecondOrderIncomplete = 1;
 Mesh 3;
 
 //------------------------------------------------------------------------------

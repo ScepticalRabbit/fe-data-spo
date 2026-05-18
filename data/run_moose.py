@@ -3,7 +3,7 @@ from pathlib import Path
 from pyvale.mooseherder import (MooseConfig,
                                 MooseRunner)
 
-MOOSE_FILE = "therm_funchs_trans.i"
+MOOSE_FILE = "therm_2dhole_funchsrc.i"
 MOOSE_PATH = Path.cwd() / MOOSE_FILE
 
 USER_DIR = Path.home()

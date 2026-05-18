@@ -27,12 +27,12 @@ plate_height = 80.0e-3; // Must be greater than plate width
 plate_diff = plate_height-plate_width;
 
 hole_rad = plate_width/8;
-hole_loc_x = plate_width/2;
+hole_loc_x = 0.0;
 hole_loc_y = plate_height/2;
 hole_circ = 2*Pi*hole_rad;
 
 // Mesh variables
-MR = 5;
+MR = 2;
 
 plate_thick_layers = MR;
 hole_sect_nodes = 2*Floor((5*MR - 1)/2)+1; // Must be odd
@@ -51,31 +51,31 @@ tol = elem_size; // Used for bounding box selection tolerance
 // Split plate into eight pieces with a square around the hole to allow spider
 // web meshing around the hole
 s1 = news;
-Rectangle(s1) = {0.0,0.0,0.0,
+Rectangle(s1) = {-plate_width/2,0.0,0.0,
                 plate_width/2,plate_diff/2};
 s2 = news;
-Rectangle(s2) = {plate_width/2,0.0,0.0,
+Rectangle(s2) = {0.0,0.0,0.0,
                 plate_width/2,plate_diff/2};
 
 s3 = news;
-Rectangle(s3) = {0.0,plate_diff/2,0.0,
+Rectangle(s3) = {-plate_width/2,plate_diff/2,0.0,
                 plate_width/2,plate_width/2};
 s4 = news;
-Rectangle(s4) = {plate_width/2,plate_diff/2,0.0,
+Rectangle(s4) = {0.0,plate_diff/2,0.0,
                 plate_width/2,plate_width/2};
 
 s5 = news;
-Rectangle(s5) = {0.0,plate_width/2+plate_diff/2,0.0,
+Rectangle(s5) = {-plate_width/2,plate_width/2+plate_diff/2,0.0,
                 plate_width/2,plate_width/2};
 s6 = news;
-Rectangle(s6) = {plate_width/2,plate_width/2+plate_diff/2,0.0,
+Rectangle(s6) = {0.0,plate_width/2+plate_diff/2,0.0,
                 plate_width/2,plate_width/2};
 
 s7 = news;
-Rectangle(s7) = {0.0,plate_height-plate_diff/2,0.0,
+Rectangle(s7) = {-plate_width/2,plate_height-plate_diff/2,0.0,
                 plate_width/2,plate_diff/2};
 s8 = news;
-Rectangle(s8) = {plate_width/2,plate_height-plate_diff/2,0.0,
+Rectangle(s8) = {0.0,plate_height-plate_diff/2,0.0,
                 plate_width/2,plate_diff/2};
 
 // Merge coincicent edges of the four overlapping squares
@@ -124,19 +124,19 @@ Recombine Surface{s8};
 Physical Surface("plate") = {Surface{:}};
 
 pc1() = Curve In BoundingBox{
-    0.0-tol,0.0-tol,0.0-tol,
-    plate_width+tol,0.0+tol,0.0+tol};
-Physical Curve("bc-base") = {pc1(0),pc1(1)};
+    -plate_width/2-tol,0.0-tol,0.0-tol,
+    plate_width/2+tol,0.0+tol,0.0+tol};
+Physical Curve("bc-bot") = {pc1(0),pc1(1)};
 
 pc2() = Curve In BoundingBox{
-    0.0-tol,plate_height-tol,0.0-tol,
-    plate_width+tol,plate_height+tol,0.0+tol};
+    -plate_width/2-tol,plate_height-tol,0.0-tol,
+    plate_width/2+tol,plate_height+tol,0.0+tol};
 Physical Curve("bc-top") = {pc2(0),pc2(1)};
 
 //------------------------------------------------------------------------------
 // Global meshing
 Mesh.ElementOrder = 2;
-Mesh.SecondOrderIncomplete = second_ord_incomp;
+Mesh.SecondOrderIncomplete = 1;
 
 Mesh 2;
 

@@ -18,24 +18,24 @@ Geometry.VolumeLabels = 0;
 // Variables
 
 // Geometric variables
-plate_width = 25e-3;
-plate_height = plate_width+10e-3; // Must be greater than plate width
+plate_width = 50e-3;
+plate_height = 80e-3;
 plate_diff = plate_height-plate_width;
-plate_thick = 1e-3;
+plate_thick = 2e-3;
 
 hole_rad = plate_width/8;
-hole_loc_x = plate_width/2;
+hole_loc_x = 0.0;
 hole_loc_y = plate_height/2;
 hole_circ = 2*Pi*hole_rad;
 
 // Mesh variables
-MR = 5;
-file_name = Sprintf("mesh3d_holeplate_%g.msh", MR);
+MR = 2;
+file_name = "mesh3d_holeplate.msh"; 
 
 elem_order = 2;
 second_ord_incomp = 1;
 
-plate_thick_layers = MR;
+plate_thick_layers = 2;
 hole_sect_nodes = 2*Floor((5*MR - 1)/2)+1; // Must be odd
 plate_rad_nodes = 2*Floor((5*MR - 1)/2)+1;
 plate_diff_nodes = 2*Floor((4*MR - 1)/2); // numbers of nodes along the rectangular extension
@@ -44,7 +44,7 @@ plate_edge_nodes = Floor((hole_sect_nodes-1)/2)+1;
 elem_size = hole_circ/(4*(hole_sect_nodes-1));
 
 tol = elem_size; // Used for bounding box selection tolerance
-tol_thick = plate_thick/(4*plate_thick_layers);
+tol_thick = plate_thick/4;
 
 //------------------------------------------------------------------------------
 // Geometry Definition
@@ -52,31 +52,31 @@ tol_thick = plate_thick/(4*plate_thick_layers);
 // Split plate into eight pieces with a square around the hole to allow spider
 // web meshing around the hole
 s1 = news;
-Rectangle(s1) = {0.0,0.0,0.0,
+Rectangle(s1) = {-plate_width/2,0.0,0.0,
                 plate_width/2,plate_diff/2};
 s2 = news;
-Rectangle(s2) = {plate_width/2,0.0,0.0,
+Rectangle(s2) = {0.0,0.0,0.0,
                 plate_width/2,plate_diff/2};
 
 s3 = news;
-Rectangle(s3) = {0.0,plate_diff/2,0.0,
+Rectangle(s3) = {-plate_width/2,plate_diff/2,0.0,
                 plate_width/2,plate_width/2};
 s4 = news;
-Rectangle(s4) = {plate_width/2,plate_diff/2,0.0,
+Rectangle(s4) = {0.0,plate_diff/2,0.0,
                 plate_width/2,plate_width/2};
 
 s5 = news;
-Rectangle(s5) = {0.0,plate_width/2+plate_diff/2,0.0,
+Rectangle(s5) = {-plate_width/2,plate_width/2+plate_diff/2,0.0,
                 plate_width/2,plate_width/2};
 s6 = news;
-Rectangle(s6) = {plate_width/2,plate_width/2+plate_diff/2,0.0,
+Rectangle(s6) = {0.0,plate_width/2+plate_diff/2,0.0,
                 plate_width/2,plate_width/2};
 
 s7 = news;
-Rectangle(s7) = {0.0,plate_height-plate_diff/2,0.0,
+Rectangle(s7) = {-plate_width/2,plate_height-plate_diff/2,0.0,
                 plate_width/2,plate_diff/2};
 s8 = news;
-Rectangle(s8) = {plate_width/2,plate_height-plate_diff/2,0.0,
+Rectangle(s8) = {0.0,plate_height-plate_diff/2,0.0,
                 plate_width/2,plate_diff/2};
 
 // Merge coincicent edges of the four overlapping squares
@@ -127,26 +127,24 @@ Extrude{0.0,0.0,plate_thick}{
 Physical Volume("plate-vol") = {Volume{:}};
 
 ps1() = Surface In BoundingBox{
-    0.0-tol,plate_height-tol,0.0-tol,
-    plate_width+tol,plate_height+tol,plate_thick+tol};
-Physical Surface("bc-top-disp") = {ps1(0),ps1(1)};
+    -plate_width/2-tol,plate_height-tol,0.0-tol,
+    plate_width/2+tol,plate_height+tol,plate_thick+tol};
+Physical Surface("bc-top") = {ps1()};
 
 ps2() = Surface In BoundingBox{
-    0.0-tol,0.0-tol,0.0-tol,
-    plate_width+tol,0.0+tol,plate_thick+tol};
-Physical Surface("bc-base-disp") = {ps2(0),ps2(1)};
+    -plate_width/2-tol,0.0-tol,0.0-tol,
+    plate_width/2+tol,0.0+tol,plate_thick+tol};
+Physical Surface("bc-bot") = {ps2()};
 
 ps3() = Surface In BoundingBox{
-    0.0-tol,0.0-tol,plate_thick-tol_thick,
-    plate_width+tol,plate_height+tol,plate_thick+tol_thick};
-Physical Surface("plate-surf-vis-front") = {ps3(0),ps3(1),ps3(2),ps3(3),
-                                            ps3(4),ps3(5),ps3(6),ps3(7)};
+    -plate_width/2-tol,0.0-tol,plate_thick-tol_thick,
+    plate_width/2+tol,plate_height+tol,plate_thick+tol_thick};
+Physical Surface("plate-surf-vis-front") = {ps3()};
 
 ps4() = Surface In BoundingBox{
-    0.0-tol,0.0-tol,0.0-tol_thick,
-    plate_width+tol,plate_height+tol,0.0+tol_thick};
-Physical Surface("plate-surf-vis-back") = {ps4(0),ps4(1),ps4(2),ps4(3),
-                                            ps4(4),ps4(5),ps4(6),ps4(7)};
+    -plate_width/2-tol,0.0-tol,0.0-tol_thick,
+    plate_width/2+tol,plate_height+tol,0.0+tol_thick};
+Physical Surface("plate-surf-vis-back") = {ps4()};
 
 //------------------------------------------------------------------------------
 // Global meshing
